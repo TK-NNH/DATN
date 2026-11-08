@@ -47,6 +47,7 @@ Author: Webstrot
 </head>
 
 <body>
+    @include('frontend.layouts.chatbot')
     @yield('content')
 
     @include('frontend.layouts.login.login')

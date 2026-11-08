@@ -171,8 +171,8 @@ class PaymentController extends Controller
 
         $vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
         $vnp_Returnurl = route('vnpay.return', );
-        $vnp_TmnCode = "HUV2CWXV";//Mã website tại VNPAY
-        $vnp_HashSecret = "8HOY25NHQSM6K2134OEFF1Z69GOJOSBG"; //Chuỗi bí mật
+        $vnp_TmnCode = "7B45I3RA";//Mã website tại VNPAY
+        $vnp_HashSecret = "QWBSNESTJVSNCHSTMQIVNSPPRNXXEWQR"; //Chuỗi bí mật
 
         $vnp_TxnRef = date('YmdHis') . '-' . uniqid(); //Mã đơn hàng. Trong thực tế Merchant cần insert đơn hàng vào DB và gửi mã này sang VNPAY
 
@@ -410,7 +410,7 @@ class PaymentController extends Controller
             return redirect()->route('movies.index')->with('error', 'Không tìm thấy vé.');
         }
 
-        $showtimeId = $ticket->showtime_id; // Giả sử bạn đã lưu showtime_id trong ticket
+        $showtimeId = $ticket->showtime_id; // Giả sử đã lưu showtime_id trong ticket
         SelectedSeat::where('user_id', $userId)
             ->where('showtime_id', $showtimeId)
             ->delete();

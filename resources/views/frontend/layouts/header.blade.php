@@ -1,8 +1,8 @@
-<div id="preloader">
+{{-- <div id="preloader">
     <div id="status">
         <img src="{{ asset('website/images/header/horoscope.gif') }}" id="preloader_image" alt="loader">
     </div>
-</div>
+</div> --}}
 
 
 <!-- color picker start -->
@@ -282,11 +282,13 @@
             </div>
         </div>
         <div class="prs_navi_right_main_wrapper">
-            <div class="prs_slidebar_wrapper">
-                <button class="second-nav-toggler" type="button">
-                    <img src="{{ asset('website/images/header/bars.png') }}" alt="bar_png">
-                </button>
-            </div>
+            @if (Auth::check())
+    <div class="prs_slidebar_wrapper">
+        <button class="second-nav-toggler" type="button">
+            <img src="{{ asset('website/images/header/bars.png') }}" alt="bar_png">
+        </button>
+    </div>
+@endif
             <div class="prs_top_login_btn_wrapper">
                 <div class="prs_animate_btn1">
                     <ul>

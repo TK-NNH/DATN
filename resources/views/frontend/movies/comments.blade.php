@@ -1,3 +1,9 @@
+@php
+    // Ảnh đại diện mặc định khi người dùng chưa đăng nhập hoặc chưa có avatar
+    $defaultAvatar = 'data:image/svg+xml;utf8,' . rawurlencode(
+        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'><rect width='50' height='50' fill='#9aa0a6'/><circle cx='25' cy='19' r='9' fill='#fff'/><path d='M7 50c0-12 8-19 18-19s18 7 18 19z' fill='#fff'/></svg>"
+    );
+@endphp
 <style>
     .comment-box {
         width: 80%;
@@ -100,7 +106,7 @@
         @csrf
         <div class="comment-box">
             <div class="d-flex mb-1">
-                <img src="{{Storage::url(Auth::user()->avt) ?? ''}}" alt="Avatar" style="margin-left: 50px" class="rounded-circle"
+                <img src="{{ Auth::user()?->avt ? Storage::url(Auth::user()->avt) : $defaultAvatar }}" alt="Avatar" style="margin-left: 50px" class="rounded-circle"
                     width="50" height="50">
                 <!-- Star Rating -->
                 <div class="star-rating">
@@ -158,12 +164,12 @@
             <div class="card mt-2 comment-item">
                 <div class="card-body d-flex">
                     <!-- Hiển thị ảnh đại diện -->
-                    <img src="{{Storage::url(Auth::user()->avt)}}" alt="Avatar"
+                    <img src="{{ $comment->user?->avt ? Storage::url($comment->user->avt) : $defaultAvatar }}" alt="Avatar"
                         class="rounded-circle me-3" width="50" height="50">
 
                     <div>
                         <!-- Tên người dùng -->
-                        <h6 class="fw-bold text-primary">{{ $comment->user->name }}</h6>
+                        <h6 class="fw-bold text-primary">{{ $comment->user?->name ?? 'Người dùng' }}</h6>
                         <!-- Ngày tạo -->
                         <p class="text-muted small">{{ $comment->created_at->format('d/m/Y H:i') }}</p>
 

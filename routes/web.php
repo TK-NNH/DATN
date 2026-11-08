@@ -53,7 +53,7 @@ Route::get('/confirmBooking', [PaymentController::class, 'confirmBooking'])->nam
 
 
 
-// Showtimes 
+// Showtimes
 use App\Http\Controllers\client\ClientBookingController;
 Route::get('/booking/{id}', [ClientBookingController::class, 'index'])->name('booking.index');
 
@@ -72,7 +72,7 @@ Route::get('/payment', [UserInforController::class, 'payment'])->name('Payment.h
 //     return QrCode::size(500)->generate('Welcome to kerneldev.com!');
 // });
 
-// Đăng nhập, đăng ký 
+// Đăng nhập, đăng ký
 use App\Http\Controllers\admin\AuthController;
 Route::get("auth/login", [AuthController::class, 'getLogin'])->name('getLogin');
 Route::get("auth/register", [AuthController::class, 'getRegister'])->name('getRegister');
@@ -96,12 +96,12 @@ Route::post('user/update', [UserInforController::class, 'update'])->name('update
 
 
 
-// Đặt ghế 
+// Đặt ghế
 Route::get('/showtime/{id}', [ClientBookingController::class, 'getSeatBooking'])->name('getSeatBooking');
 Route::get('detailBooking/{id}', [ClientBookingController::class, 'detailBooking'])->name('detailBooking');
 Route::post('/detailBooking/{id}', [ClientBookingController::class, 'detailBooking'])->name('detailBooking');
 
-// Detail 
+// Detail
 use App\Http\Controllers\client\MovieController as FrontendMovieController;
 use App\Http\Controllers\client\CommentController;
 Route::get('/', [FrontendMovieController::class, 'index'])->name('movies.index');
@@ -129,3 +129,7 @@ Route::get('/redeem', [VourchersController::class, 'showForm'])->name('redeem.fo
 
 // Route để xử lý việc đổi mã giảm giá
 Route::post('/redeem', [VourchersController::class, 'redeem'])->name('redeem.submit');
+
+// Route chat bot gợi ý phim
+Route::post('/chatbot/message', [\App\Http\Controllers\client\ChatbotController::class, 'message'])
+       ->middleware('throttle:30,1')->name('chatbot.message');

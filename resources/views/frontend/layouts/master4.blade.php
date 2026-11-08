@@ -40,6 +40,7 @@
 
     @include('frontend.layouts.header')
     {{-- @include('frontend.layouts.slider.slider') --}}
+    @include('frontend.layouts.chatbot')
 
 
     @yield('content')

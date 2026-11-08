@@ -40,9 +40,35 @@
 </head>
 
 <body>
+@if (session('system_error'))
+    <script>
+        (function () {
+            var box = document.createElement('div');
+            var p = document.createElement('p');
+            p.textContent = @json(session('system_error'));
+            box.appendChild(p);
 
+            @if (session('system_error_code'))
+                var c = document.createElement('p');
+                c.innerHTML = 'Mã lỗi: <b></b><br><small>Vui lòng gửi mã này cho quản trị viên khi báo lỗi.</small>';
+                c.querySelector('b').textContent = @json(session('system_error_code'));
+                box.appendChild(c);
+            @endif
+
+            @if (session('system_error_detail'))
+                var d = document.createElement('pre');
+                d.style.cssText = 'text-align:left;white-space:pre-wrap;font-size:12px;background:#f4f4f4;padding:8px;border-radius:6px;margin-top:8px';
+                d.textContent = @json(session('system_error_detail'));
+                box.appendChild(d);
+            @endif
+
+            Swal.fire({ icon: 'error', title: 'Thông báo', html: box, confirmButtonText: 'OK' });
+        })();
+    </script>
+@endif
     @include('frontend.layouts.header')
     @include('frontend.layouts.slider.slider')
+    @include('frontend.layouts.chatbot')
 
 
     @yield('content')
