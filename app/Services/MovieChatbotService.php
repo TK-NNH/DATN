@@ -18,6 +18,7 @@ class MovieChatbotService
     private const NOW_SHOWING = 'Đang chiếu';
     private const UPCOMING    = 'Sắp ra mắt';
     private const LIMIT       = 6;
+    private const NOT_FOUND_MESSAGE = 'Không tìm thấy phim phù hợp. Vui lòng thử lại.';
     private const EMPTY_MESSAGE = 'Hệ thống chưa có thông tin hoặc đang tổng hợp dữ liệu. Vui lòng thử lại sau.';
 
     private const DEFAULT_CHIPS = [
@@ -29,6 +30,7 @@ class MovieChatbotService
         'Phổ biến nhất',
         'Người cùng gu cũng thích',
         'Hợp gu riêng',
+        'Gợi ý thể loại',
         'Demo AI người dùng 1',
         'Kết quả đánh giá mô hình',
     ];
@@ -57,6 +59,14 @@ class MovieChatbotService
         }
         if (preg_match('/\b(?:user|nguoi dung)\s*(?:so\s*)?(\d{1,4})\b/', $n, $m)) {
             return $this->movieLensDemo((int) $m[1], $n);
+        }
+        // Gợi ý theo thể loại (dữ liệu MovieLens): nút "Gợi ý thể loại", "Gợi ý thể loại: Hành động [trang 2]"
+        if (preg_match('/\b(?:goi y the loai|the loai ai)\b(.*)$/', $n, $gm)) {
+            return $this->aiGenreReply(trim($gm[1]));
+        }
+        // Câu mô tả sở thích, ví dụ "Tôi thích xem phim gay cấn nhưng cũng hài hước" -> hiểu từ khóa rồi gợi ý thể loại
+        if ($this->looksLikePreference($n)) {
+            return $this->aiGenreReply($n);
         }
         // 3 mục tổng hợp (không gắn với người dùng cụ thể): top 15 phim của từng cách làm
         if ($this->hasAny($n, ['hop gu rieng', 'hop gu'])) {
@@ -359,6 +369,87 @@ class MovieChatbotService
         );
     }
 
+    /** Câu có dạng "tôi thích/muốn xem phim ..." hoặc nhắc tới "tình tiết"... (mô tả nội dung phim mong muốn). */
+    private function looksLikePreference(string $n): bool
+    {
+        return (bool) preg_match('/\b(?:toi|minh|em|tui)\b.*\b(?:thich|muon|can|tim)\b.*\bphim\b/', $n)
+            || (bool) preg_match('/\b(?:thich|muon) xem\b/', $n)
+            || str_contains($n, 'tinh tiet');
+    }
+
+    /**
+     * Gợi ý phim theo thể loại trong dữ liệu MovieLens (tách biệt với database FilmHub).
+     * $rest có thể là: '' (hiện danh sách thể loại), 'hanh dong' / 'hanh dong hai trang 2' (tên thể loại),
+     * hoặc cả một câu mô tả như "toi thich xem phim gay can nhung cung hai huoc".
+     */
+    private function aiGenreReply(string $rest): array
+    {
+        $svc = new RecommenderService();
+
+        if (!$svc->isReady()) {
+            return $this->response(
+                'Mô hình AI chưa được huấn luyện. Hãy chạy lệnh: php artisan recommender:train',
+                [], self::DEFAULT_CHIPS
+            );
+        }
+
+        $page = 1;
+        if (preg_match('/\btrang (\d{1,2})\s*$/', $rest, $pm)) {
+            $page = (int) $pm[1];
+            $rest = trim(substr($rest, 0, -strlen($pm[0])));
+        }
+
+        // Chưa nhập gì: hiện danh sách thể loại để chọn
+        if ($rest === '') {
+            $chips = array_map(fn ($label) => "Gợi ý thể loại: {$label}", $svc->genreLabels());
+
+            return $this->response(
+                'Bạn muốn xem phim thể loại nào? Chọn một thể loại bên dưới, hoặc gõ mô tả của bạn (ví dụ: "Tôi thích xem phim gay cấn nhưng cũng vui nhộn"):',
+                [], $chips
+            );
+        }
+
+        $genres = $svc->extractGenres($rest);
+        if (!$genres) {
+            return $this->response(
+                'Không tìm thấy thể loại phù hợp với nội dung bạn nhập. Vui lòng thử lại với từ khóa khác (ví dụ: gay cấn, hài hước, lãng mạn, kinh dị, hoạt hình...).',
+                [], array_merge(['Gợi ý thể loại'], array_diff(self::DEFAULT_CHIPS, ['Gợi ý thể loại']))
+            );
+        }
+
+        $res = $svc->topByGenres($genres, $page, 15);
+        if (empty($res['cards'])) {
+            return $this->response(self::NOT_FOUND_MESSAGE, [], self::DEFAULT_CHIPS);
+        }
+
+        $names = $svc->genreNames($genres);
+        if (count($genres) === 1) {
+            $text = sprintf(
+                'Phim thể loại %s (trang %d/%d, tổng cộng %d phim), xếp theo điểm hệ thống dự đoán người dùng sẽ chấm trung bình. Chỉ gồm các phim có đủ số lượt chấm để dự đoán đáng tin:',
+                $names, $res['page'], $res['pages'], $res['total']
+            );
+        } elseif ($res['full'] > 0) {
+            $text = sprintf(
+                'Mình hiểu bạn thích thể loại: %s. Có %d phim có đủ cả các thể loại này (xếp trước), các phim sau chỉ có một phần trong số đó. Trang %d/%d:',
+                $names, $res['full'], $res['page'], $res['pages']
+            );
+        } else {
+            $text = sprintf(
+                'Mình hiểu bạn thích thể loại: %s. Không có phim nào đủ cả các thể loại này, nên mình gợi ý các phim có ít nhất một thể loại (trang %d/%d):',
+                $names, $res['page'], $res['pages']
+            );
+        }
+
+        $labels = implode(', ', array_map(fn ($g) => RecommenderService::GENRE_VI[$g] ?? $g, $genres));
+        $chips = [];
+        if ($res['page'] < $res['pages']) {
+            $chips[] = 'Gợi ý thể loại: ' . $labels . ' trang ' . ($res['page'] + 1);
+        }
+        $chips[] = 'Gợi ý thể loại';
+
+        return $this->response($text, $res['cards'], array_merge($chips, array_diff(self::DEFAULT_CHIPS, $chips)));
+    }
+
     /** Top 15 phim tổng hợp cho tất cả người dùng theo một cách làm: 'popularity' | 'cf' | 'mf'. */
     private function overallReply(string $which): array
     {
@@ -371,7 +462,7 @@ class MovieChatbotService
             );
         }
 
-        $result = $svc->topOverall($which, 21);
+        $result = $svc->topOverall($which, 15);
         if (empty($result['cards'])) {
             return $this->response(self::EMPTY_MESSAGE, [], self::DEFAULT_CHIPS);
         }

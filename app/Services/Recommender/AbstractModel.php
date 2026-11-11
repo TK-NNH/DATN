@@ -131,6 +131,18 @@ abstract class AbstractModel implements RecommenderModel
         return $this->userItems[$userId] ?? [];
     }
 
+    /** Các phim đủ điều kiện làm ứng viên gợi ý (đủ số lượt chấm tối thiểu). */
+    public function candidateItems(): array
+    {
+        return $this->candidates;
+    }
+
+    /** Số lượt chấm của một phim trong dữ liệu huấn luyện. */
+    public function ratingCount(int $itemId): int
+    {
+        return $this->itemCount[$itemId] ?? 0;
+    }
+
     /** @return array<int,int> mọi userId mà mô hình biết */
     public function userIds(): array
     {
